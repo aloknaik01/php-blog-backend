@@ -1,4 +1,11 @@
-vendor/
+# PHP Composer
+/vendor/
+
+# Node.js (if you use any JS tooling)
 node_modules/
+
+# Environment variables (contains DB credentials)
 .env
+
+# Log files
 *.log
