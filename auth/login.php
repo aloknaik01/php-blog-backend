@@ -1,93 +1,94 @@
 <?php
-// Include Composer's autoloader to use third-party packages
+// Composer's autoloader gives access to third-party packages (like JWT, dotenv, etc.)
 require_once '../vendor/autoload.php';
 
-// Load environment variables from .env file in the parent directory
-// This keeps sensitive data (like passwords) out of our code
+//  Load environment variables from the .env file securely (like DB credentials, secret keys)
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
-// Include our database connection and response helper functions
+//  Connect to the database and include helper functions for sending responses
 require_once '../db.php';
 require_once '../response.php';
 
-// Import JWT classes for creating and managing tokens
+// Use Firebase JWT classes to create and manage tokens securely
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// Only allow POST requests for login (security best practice)
+//  Only allow POST requests to prevent security risks from GET or other methods
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendError("Only POST method allowed", 405);
+    sendError("Only POST method allowed", 405); // Method Not Allowed
 }
 
-// Get the JSON data sent from the frontend/client
+//  Read raw JSON data sent by the frontend (like React or Vue)
 $data = json_decode(file_get_contents("php://input"));
 
-// Extract and clean the email and password from the request
+//  Extract email and password, trimming extra spaces and handling null safely
 $email = trim($data->email ?? '');
 $password = trim($data->password ?? '');
 
-// Check if both email and password were provided
+//  If email or password is missing, return a user-friendly error
 if (!$email || !$password) {
-    sendError("Email and password are required", 400);
+    sendError("Email and password are required", 400); // Bad Request
 }
 
 try {
-    // Prepare a SQL statement to find the user by email
-    // Using prepared statements prevents SQL injection attacks
+    //  Prepare a secure SQL query using a prepared statement to prevent SQL injection
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
+    $stmt->bind_param("s", $email); // Bind email as string
     $stmt->execute();
     
-    // Get the result and fetch the user data
+    //  Fetch user info from database
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
-    
-    // Check if user exists and password is correct
-    // password_verify() safely compares the plain password with the hashed one
+
+    //  If user not found or password doesn't match the hashed password in DB
     if (!$user || !password_verify($password, $user['password'])) {
-        sendError("Invalid email or password", 401);
+        sendError("Invalid email or password", 401); // Unauthorized
     }
-    
-    // Create the payload (data) that will be stored in the JWT token
+
+    //  If login is successful, create the data (payload) that will go inside the JWT
     $payload = [
-        'id' => $user['id'],           // User's unique ID
-        'email' => $user['email'],     // User's email
-        'role' => $user['role'],       // User's role (admin, user, etc.)
-        'exp' => time() + (60 * 60 * 24) // Token expires in 24 hours
+        'id' => $user['id'],               // User ID
+        'email' => $user['email'],         // User Email
+        'role' => $user['role'],           // User Role (admin or user)
+        'exp' => time() + (60 * 60 * 24)   // Token expires after 24 hours
     ];
-    
-    // Get the secret key from environment variables
-    // This key is used to sign the JWT token
+
+    //  Get the secret key from environment variables to sign the JWT
     $jwt_secret = $_ENV['JWT_SECRET'] ?? null;
-    
-    // Make sure we have a secret key (security check)
+
+    //  If JWT secret is missing in your .env, throw server error
     if (!$jwt_secret) {
-        sendError("JWT secret key not found in environment", 500);
+        sendError("JWT secret key not found in environment", 500); // Internal Server Error
     }
-    
-    // Create the JWT token using our payload and secret key
+
+    //  Generate the JWT token using HS256 algorithm and the secret key
     $token = JWT::encode($payload, $jwt_secret, 'HS256');
-    
-    // Create display name from email if name field doesn't exist in database
+
+    //  Store the token in a secure HttpOnly cookie (not accessible by JavaScript)
+    setcookie("token", $token, [
+        'expires' => time() + 86400,           // Cookie valid for 1 day
+        'path' => '/',                         // Available on entire domain
+        'secure' => isset($_SERVER['HTTPS']), // Send cookie only on HTTPS
+        'httponly' => true,                    // JavaScript cannot read this cookie
+        'samesite' => 'Strict'                 // Only send cookie on same-site requests
+    ]);
+
+    //  Set a display name — use name from DB if available, else fallback to part before @
     $displayName = $user['name'] ?? explode('@', $user['email'])[0];
-    
-    // Send successful response with token and user information
+
+    //  Send a clean response (token is already stored in cookie)
     sendResponse([
-        'token' => $token,              // JWT token for future requests
-        'user' => [                     // User information for the frontend
+        'user' => [
             'id' => $user['id'],
             'name' => $displayName,
             'email' => $user['email'],
             'role' => $user['role']
         ]
     ], 200, "Login successful");
-    
 
-    // Send successful response with token and user information
-    
 } catch (Exception $e) {
-    // If anything goes wrong, send an error response
+    //  If any exception occurs (like DB failure), show user-friendly error
     sendError("Login failed: " . $e->getMessage(), 500);
 }
 ?>
