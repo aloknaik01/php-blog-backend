@@ -83,6 +83,9 @@ try {
         ]
     ], 200, "Login successful");
     
+
+    // Send successful response with token and user information
+    
 } catch (Exception $e) {
     // If anything goes wrong, send an error response
     sendError("Login failed: " . $e->getMessage(), 500);
