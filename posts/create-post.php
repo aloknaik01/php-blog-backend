@@ -2,7 +2,7 @@
 require_once '../vendor/autoload.php';
 require_once '../db.php';
 require_once '../response.php';
-require_once '../auth/authMiddleware.php'; 
+require_once '../auth/authorize.php'; // Include authorize.php (which includes authMiddleware.php)
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -28,9 +28,9 @@ try {
     $stmt = $conn->prepare("INSERT INTO posts (title, content, author_id) VALUES (?, ?, ?)");
     $stmt->bind_param("ssi", $title, $content, $author_id);
     $stmt->execute();
-
+    
     $newPostId = $stmt->insert_id;
-
+    
     sendResponse([
         'id' => $newPostId,
         'title' => $title,
@@ -42,3 +42,4 @@ try {
 } catch (Exception $e) {
     sendError("Failed to create post: " . $e->getMessage(), 500);
 }
+?>
