@@ -53,7 +53,7 @@ try {
     $cookieName = '';
 
     if ($role === 'admin') {
-        $cookieName = 'adminToken';
+        $cookieName = strtolower($namePart) . 'AdminToken';
     } elseif ($role === 'author') {
         $cookieName = strtolower($namePart) . 'Token'; // e.g., aliceToken, bobToken
     } else {
