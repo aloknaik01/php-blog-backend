@@ -1,20 +1,27 @@
 <?php
+require_once '../vendor/autoload.php';
+require_once '../db.php';
 require_once '../response.php';
+require_once '../middleware/authMiddleware.php';
 
-// List of potential cookie suffixes based on roles/names
-$possibleCookies = array_keys($_COOKIE);
-$cleared = false;
+// Authenticate user (must be logged in)
+$user = requireAuth();
 
-foreach ($possibleCookies as $cookieName) {
-    if (str_ends_with($cookieName, 'Token')) {
-        setcookie($cookieName, '', time() - 3600, '/', '', isset($_SERVER['HTTPS']), true);
-        $cleared = true;
-    }
+// Get the cookie name from authenticated user
+$cookieName = $user['cookie_name'] ?? null;
+
+if ($cookieName && isset($_COOKIE[$cookieName])) {
+    // Expire the cookie
+    setcookie(
+        $cookieName,
+        '',
+        time() - 3600,
+        '/',
+        '',
+        isset($_SERVER['HTTPS']),
+        true
+    );
+    sendResponse(null, 200, "Logout successful for {$user['email']}");
+} else {
+    sendError("No active session found", 400);
 }
-
-// Optional: fallback if none matched
-if (!$cleared && isset($_COOKIE['token'])) {
-    setcookie("token", "", time() - 3600, "/", "", isset($_SERVER['HTTPS']), true);
-}
-
-sendResponse(null, 200, "Logged out successfully");
