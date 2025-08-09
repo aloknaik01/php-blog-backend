@@ -9,6 +9,7 @@ require_once '../response.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
+// === Allow only POST method ===
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendError("Only POST method allowed", 405);
 }
@@ -18,8 +19,14 @@ $data = json_decode(file_get_contents("php://input"));
 $email = trim($data->email ?? '');
 $password = trim($data->password ?? '');
 
+// === Required field check ===
 if (!$email || !$password) {
     sendError("Email and password are required", 400);
+}
+
+// === Email format validation ===
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    sendError("Invalid email format", 400);
 }
 
 try {
@@ -29,15 +36,18 @@ try {
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
+    // === Verify password ===
     if (!$user || !password_verify($password, $user['password'])) {
         sendError("Invalid email or password", 401);
     }
 
+    // === JWT Payload ===
     $payload = [
         'id' => $user['id'],
+        'username' => $user['username'], // added for convenience
         'email' => $user['email'],
         'role' => $user['role'],
-        'exp' => time() + (60 * 60 * 24) // 24 hours
+        'exp' => time() + (60 * 60 * 24) // expires in 24 hours
     ];
 
     $jwt_secret = $_ENV['JWT_SECRET'] ?? null;
@@ -45,22 +55,17 @@ try {
         sendError("JWT secret key not found in environment", 500);
     }
 
+    // === Create JWT Token ===
     $token = JWT::encode($payload, $jwt_secret, 'HS256');
 
-    // === DYNAMIC COOKIE NAME ===
+    // === Dynamic cookie name based on role ===
     $role = strtolower($user['role']);
-    $namePart = $user['name'] ?? explode('@', $user['email'])[0];
-    $cookieName = '';
+    $namePart = $user['username'] ?? explode('@', $user['email'])[0];
+    $cookieName = ($role === 'admin')
+        ? strtolower($namePart) . 'AdminToken'
+        : strtolower($namePart) . 'Token';
 
-    if ($role === 'admin') {
-        $cookieName = strtolower($namePart) . 'AdminToken';
-    } elseif ($role === 'author') {
-        $cookieName = strtolower($namePart) . 'Token'; // e.g., aliceToken, bobToken
-    } else {
-        $cookieName = strtolower($namePart) . 'Token'; // e.g., charlieToken
-    }
-
-    // === SET COOKIE ===
+    // === Set secure HTTP-only cookie ===
     setcookie($cookieName, $token, [
         'expires' => time() + 86400,
         'path' => '/',
@@ -69,11 +74,11 @@ try {
         'samesite' => 'Strict'
     ]);
 
-    // === RESPONSE ===
+    // === Final Response ===
     sendResponse([
         'user' => [
             'id' => $user['id'],
-            'name' => $namePart,
+            'username' => $user['username'],
             'email' => $user['email'],
             'role' => $user['role'],
             'cookie_name' => $cookieName
@@ -81,5 +86,6 @@ try {
     ], 200, "Login successful");
 
 } catch (Exception $e) {
-    sendError("Login failed: " . $e->getMessage(), 500);
+    // Avoid sending sensitive DB or JWT errors directly to the client
+    sendError("Login failed due to server error", 500);
 }
