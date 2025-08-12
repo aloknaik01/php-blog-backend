@@ -78,7 +78,8 @@ function generate_slug($title, $conn) {
         return $slug . '-' . time();
     }
 
-    while (true) {
+    $count = 0; 
+        while (true) {
         $stmt->bind_param('s', $slug);
         $stmt->execute();
         $stmt->bind_result($count);
@@ -100,8 +101,6 @@ try {
     ");
     if (!$stmt) sendError("Database prepare failed", 500);
 
-    // Note: category_id can be NULL; bind as integer but accept null by passing NULL
-    // We will bind as string types and convert null to null param (mysqli handles)
     $stmt->bind_param(
         "sssssis",
         $title,
