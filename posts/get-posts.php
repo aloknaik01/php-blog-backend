@@ -96,3 +96,58 @@ try {
     sendError("Error: " . $e->getMessage(), 500);
 }
 ?>
+
+
+<!-- 
+Based on your get-posts API code, here are comprehensive endpoint examples to test all the functionality:
+Basic Endpoints:
+1. Get All Posts (Default)
+GET http://localhost/blog-app/posts/get-posts.php
+2. Pagination
+GET http://localhost/blog-app/posts/get-posts.php?page=1
+GET http://localhost/blog-app/posts/get-posts.php?page=2
+GET http://localhost/blog-app/posts/get-posts.php?page=1&limit=5
+GET http://localhost/blog-app/posts/get-posts.php?page=2&limit=3
+3. Sorting Options
+GET http://localhost/blog-app/posts/get-posts.php?sort_by=latest
+GET http://localhost/blog-app/posts/get-posts.php?sort_by=oldest  
+GET http://localhost/blog-app/posts/get-posts.php?sort_by=views
+GET http://localhost/blog-app/posts/get-posts.php?sort_by=most_commented
+Filtering Endpoints:
+4. Filter by Category
+GET http://localhost/blog-app/posts/get-posts.php?category_id=1
+GET http://localhost/blog-app/posts/get-posts.php?category_id=2&sort_by=views
+5. Filter by Author
+GET http://localhost/blog-app/posts/get-posts.php?author_id=23
+GET http://localhost/blog-app/posts/get-posts.php?author_id=1&sort_by=latest
+6. Date Range Filter
+GET http://localhost/blog-app/posts/get-posts.php?start_date=2025-01-01&end_date=2025-12-31
+GET http://localhost/blog-app/posts/get-posts.php?start_date=2025-08-01&end_date=2025-08-31
+Combined Filters:
+7. Multiple Filters Together
+GET http://localhost/blog-app/posts/get-posts.php?page=1&limit=5&sort_by=views&category_id=1
+
+GET http://localhost/blog-app/posts/get-posts.php?author_id=23&sort_by=latest&page=1&limit=3
+
+GET http://localhost/blog-app/posts/get-posts.php?category_id=1&start_date=2025-08-01&end_date=2025-08-31&sort_by=most_commented
+
+GET http://localhost/blog-app/posts/get-posts.php?author_id=23&category_id=1&sort_by=views&page=1&limit=10
+Advanced Testing:
+8. Edge Cases
+GET http://localhost/blog-app/posts/get-posts.php?page=0        # Should default to page=1
+GET http://localhost/blog-app/posts/get-posts.php?limit=0       # Should default to limit=10
+GET http://localhost/blog-app/posts/get-posts.php?page=999      # Empty result
+GET http://localhost/blog-app/posts/get-posts.php?category_id=999  # Non-existent category
+9. Invalid Parameters
+GET http://localhost/blog-app/posts/get-posts.php?sort_by=invalid   # Should default to 'latest'
+GET http://localhost/blog-app/posts/get-posts.php?page=abc          # Should default to 1
+Real Examples Based on Your Data:
+10. Using Your Actual Data
+# Get posts by your user (ID: 23)
+GET http://localhost/blog-app/posts/get-posts.php?author_id=23
+
+# Get first 3 posts sorted by latest  
+GET http://localhost/blog-app/posts/get-posts.php?limit=3&sort_by=latest
+
+# Search in August 2025
+GET http://localhost/blog-app/posts/get-posts.php?start_date=2025-08-01&end_date=2025-08-31 -->
