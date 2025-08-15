@@ -1,5 +1,4 @@
 <?php
-// categories/delete-category.php
 require_once '../vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
@@ -233,4 +232,5 @@ try {
     
     sendError($errorMessage . ": " . $e->getMessage(), $statusCode);
 }
+
 ?>
