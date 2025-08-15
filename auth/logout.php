@@ -1,8 +1,8 @@
 <?php
 require_once '../vendor/autoload.php';
 require_once '../db.php';
-require_once '../response.php';
-require_once '../middleware/authMiddleware.php';
+require_once __DIR__ . '/authMiddleware.php';
+require_once __DIR__ . '/../response.php';
 
 // Authenticate user (must be logged in)
 $user = requireAuth();
