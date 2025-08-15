@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     sendResponse(["error" => "Method Not Allowed. Only GET is allowed."], 405);
 }
 
-// ✅ Check query params
+// Check query params
 $id = $_GET['id'] ?? null;
 $slug = $_GET['slug'] ?? null;
 
@@ -20,10 +20,10 @@ if (!$id && !$slug) {
 
 try {
     if ($id) {
-        $stmt = $conn->prepare("SELECT id, name, slug, created_at FROM categories WHERE id = ?");
+        $stmt = $conn->prepare("SELECT id, name, slug FROM categories WHERE id = ?");
         $stmt->bind_param("i", $id);
     } else {
-        $stmt = $conn->prepare("SELECT id, name, slug, created_at FROM categories WHERE slug = ?");
+        $stmt = $conn->prepare("SELECT id, name, slug FROM categories WHERE slug = ?");
         $stmt->bind_param("s", $slug);
     }
 
@@ -36,10 +36,13 @@ try {
     }
 
     sendResponse([
-        "message" => "✅ Category fetched successfully!",
+        "message" => "Category fetched successfully!",
         "category" => $category
     ], 200);
 
 } catch (Exception $e) {
-    sendResponse(["error" => "Something went wrong while fetching category.", "details" => $e->getMessage()], 500);
+    sendResponse([
+        "error" => "Something went wrong while fetching category.",
+        "details" => $e->getMessage()
+    ], 500);
 }
