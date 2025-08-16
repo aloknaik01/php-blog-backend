@@ -19,7 +19,7 @@ $user = requireAuth();
 // Get input data
 $data = json_decode(file_get_contents("php://input"), true);
 
-$postId = isset($data['post_id']) ? (int)$data['post_id'] : null;
+$postId = isset($_GET['post_id']) ? (int)$_GET['post_id'] : null;
 $comment = isset($data['comment']) ? trim($data['comment']) : '';
 
 // Validation
