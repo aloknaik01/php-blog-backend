@@ -6,14 +6,14 @@ $dotenv->load();
 
 require_once '../../db.php';
 require_once '../../response.php';
-require_once '../../auth/authMiddleware.php'; // ✅ auth added
+require_once '../../auth/authMiddleware.php'; // auth added
 
 // Only GET method allowed
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     sendError("Only GET method allowed", 405);
 }
 
-// ✅ Require authentication (JWT via cookie)
+// Require authentication (JWT via cookie)
 $user = requireAuth(); 
 
 // Get parameters
@@ -114,7 +114,7 @@ try {
     $statsStmt->execute();
     $stats = $statsStmt->get_result()->fetch_assoc();
     
-    // ✅ Final response with success true
+    // Final response with success true
     $responseData = [
         'success' => true,
         'comments' => $comments,
@@ -141,7 +141,7 @@ try {
             'first_comment_date' => $stats['first_comment_date'],
             'latest_comment_date' => $stats['latest_comment_date']
         ],
-        'user' => $user // ✅ logged-in user info included
+        'user' => $user // logged-in user info included
     ];
     
     // Add navigation URLs
