@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     sendError("Only GET method allowed", 405);
 }
 
-// Require authentication (JWT via cookie)
+//  Require authentication
 $user = requireAuth(); 
 
 // Get parameters
@@ -141,7 +141,7 @@ try {
             'first_comment_date' => $stats['first_comment_date'],
             'latest_comment_date' => $stats['latest_comment_date']
         ],
-        'user' => $user // logged-in user info included
+        'user' => $user //  logged-in user info included
     ];
     
     // Add navigation URLs
