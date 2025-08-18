@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
     sendError("Only DELETE method allowed", 405);
 }
 
-// Require authentication
+// Require authentication      
 $user = requireAuth();
 
 // Get comment ID from URL or request body
