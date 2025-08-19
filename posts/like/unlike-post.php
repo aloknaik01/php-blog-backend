@@ -1,64 +1,110 @@
 <?php
-require_once "../db.php";
-require_once "../response.php";
-require_once "../auth/authMiddleware.php";
+// posts/likes/unlike-post.php
+require_once '../../vendor/autoload.php';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../');
+$dotenv->load();
 
-header("Content-Type: application/json");
+require_once '../../db.php';
+require_once '../../response.php';
+require_once '../../auth/authMiddleware.php';
 
-// Allow only DELETE method for unlike action
+// Only DELETE method allowed
 if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
-    sendResponse(405, ["error" => "Only DELETE method allowed"]);
+    sendError("Only DELETE method allowed", 405);
 }
 
-$user = authenticate(); // Verify and get the logged in user
-$post_id = $_GET['id'] ?? null; // Post id should be passed in the URL like unlike-post.php?id=35
+// Require authentication
+$user = requireAuth();
 
-// Check if post id is provided
-if (!$post_id) {
-    sendResponse(400, ["error" => "Post id is required"]);
+// Get post ID from query parameters
+$postId = isset($_GET['post_id']) ? (int)$_GET['post_id'] : null;
+
+// Validation
+if (!$postId || $postId <= 0) {
+    sendError("Valid post ID is required", 400);
 }
 
-// Check if post exists
-$stmt = $conn->prepare("SELECT id FROM posts WHERE id = ?");
-$stmt->bind_param("i", $post_id);
-$stmt->execute();
-$post = $stmt->get_result()->fetch_assoc();
+// Start transaction
+$conn->begin_transaction();
 
-if (!$post) {
-    sendResponse(404, ["error" => "Post not found"]);
+try {
+    // Verify post exists
+    $postStmt = $conn->prepare("
+        SELECT id 
+        FROM posts 
+        WHERE id = ?
+    ");
+    $postStmt->bind_param("i", $postId);
+    $postStmt->execute();
+    $post = $postStmt->get_result()->fetch_assoc();
+    
+    if (!$post) {
+        $conn->rollback();
+        sendError("Post not found", 404);
+    }
+    
+    // Check if user has liked this post
+    $likeStmt = $conn->prepare("
+        SELECT id 
+        FROM post_likes 
+        WHERE post_id = ? AND user_id = ?
+    ");
+    $likeStmt->bind_param("ii", $postId, $user['id']);
+    $likeStmt->execute();
+    $like = $likeStmt->get_result()->fetch_assoc();
+    
+    if (!$like) {
+        $conn->rollback();
+        sendError("You have not liked this post", 404);
+    }
+    
+    // Remove the like
+    $deleteStmt = $conn->prepare("
+        DELETE FROM post_likes 
+        WHERE post_id = ? AND user_id = ?
+    ");
+    $deleteStmt->bind_param("ii", $postId, $user['id']);
+    
+    if (!$deleteStmt->execute()) {
+        throw new Exception("Failed to remove like");
+    }
+    
+    if ($deleteStmt->affected_rows === 0) {
+        $conn->rollback();
+        sendError("Like not found or already removed", 404);
+    }
+    
+    // Get updated like count
+    $statsStmt = $conn->prepare("
+        SELECT COUNT(*) as total_likes
+        FROM post_likes 
+        WHERE post_id = ?
+    ");
+    $statsStmt->bind_param("i", $postId);
+    $statsStmt->execute();
+    $totalLikes = (int)$statsStmt->get_result()->fetch_assoc()['total_likes'];
+    
+    // Commit transaction
+    $conn->commit();
+    
+    // Simple response
+    sendResponse([
+        'post_id' => $postId,
+        'total_likes' => $totalLikes,
+        'user_liked' => false
+    ], 200, "Post unliked successfully");
+    
+} catch (Exception $e) {
+    $conn->rollback();
+    
+    // Log error
+    error_log("Unlike Post Error: " . json_encode([
+        'post_id' => $postId,
+        'user_id' => $user['id'],
+        'error' => $e->getMessage(),
+        'timestamp' => date('Y-m-d H:i:s')
+    ]));
+    
+    sendError("Failed to unlike post: " . $e->getMessage(), 500);
 }
-
-// Check if the user has already liked the post
-$stmt = $conn->prepare("SELECT id FROM likes WHERE user_id = ? AND post_id = ?");
-$stmt->bind_param("ii", $user['id'], $post_id);
-$stmt->execute();
-$like = $stmt->get_result()->fetch_assoc();
-
-if (!$like) {
-    sendResponse(400, ["error" => "You have not liked this post yet"]);
-}
-
-// Unlike means remove the record from likes table
-$stmt = $conn->prepare("DELETE FROM likes WHERE id = ?");
-$stmt->bind_param("i", $like['id']);
-$stmt->execute();
-
-// Instead of deleting notification completely, mark it inactive
-$stmt = $conn->prepare("UPDATE notifications SET is_active = 0 WHERE type = 'like' AND user_id = ? AND post_id = ?");
-$stmt->bind_param("ii", $user['id'], $post_id);
-$stmt->execute();
-
-// Log the unlike action in unlike_logs table
-// This table should already be created at migration or setup time
-$stmt = $conn->prepare("INSERT INTO unlike_logs (user_id, post_id, created_at) VALUES (?, ?, NOW())");
-$stmt->bind_param("ii", $user['id'], $post_id);
-$stmt->execute();
-
-// Send response with extra information
-sendResponse(200, [
-    "message" => "Post unliked successfully",
-    "actions" => [
-        "can_like_again" => true,
-        "like_url" => "/like-post.php?id=" . $post_id
-    ]
-]);
+?>
