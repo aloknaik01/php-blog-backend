@@ -1,5 +1,7 @@
 <?php
+
 require_once '../vendor/autoload.php';
+require_once "cors.php";
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
