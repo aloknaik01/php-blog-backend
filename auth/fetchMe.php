@@ -33,10 +33,12 @@ try {
             'id' => $freshUser['id'],
             'username' => $freshUser['username'],
             'email' => $freshUser['email'],
-            'role' => $freshUser['role'],
-            'cookie_name' => $user['cookie_name']
         ]
     ], 200, "User fetched successfully");
+
+//     sendResponse([
+//     'user' => $user
+// ], 200, "Session active");
 
 } catch (Exception $e) {
     sendError("Failed to fetch user: " . $e->getMessage(), 500);
