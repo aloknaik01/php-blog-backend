@@ -93,7 +93,7 @@ A lightweight RESTful API backend for a blog built using PHP and MySQL.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/blog-app.git
+git clone https://github.com/aloknaik01/php-blog-backend.git
 cd blog-app
 ```
 
